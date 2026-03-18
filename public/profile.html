@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WatchTogether — ตั้งค่าโปรไฟล์</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="profile-page">
+    <div class="profile-card">
+      <!-- Logo -->
+      <div class="logo" style="justify-content:center;margin-bottom:1.5rem">
+        <span class="logo-icon">▶</span>
+        <span class="logo-text">WatchTogether</span>
+      </div>
+
+      <h2 class="profile-title">ตั้งค่าโปรไฟล์ของคุณ</h2>
+      <p class="profile-subtitle">ข้อมูลนี้จะแสดงในห้องดูวิดีโอ</p>
+
+      <!-- Avatar Preview -->
+      <div class="avatar-preview-wrap">
+        <div class="avatar-preview" id="avatar-preview">A</div>
+      </div>
+
+      <!-- Name -->
+      <div class="form-group">
+        <label>ชื่อที่แสดง</label>
+        <input
+          type="text"
+          id="profile-name"
+          placeholder="ชื่อของคุณ"
+          maxlength="20"
+          autocomplete="off"
+          oninput="updatePreview()"
+        />
+      </div>
+
+      <!-- Color picker -->
+      <div class="form-group">
+        <label>สีอวาตาร์</label>
+        <div class="color-grid" id="color-grid"></div>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveProfile()">บันทึกและเริ่มใช้งาน</button>
+
+      <div id="profile-error" class="error-msg hidden" style="margin-top:0.75rem"></div>
+    </div>
+  </div>
+
+  <script>
+    const COLORS = [
+      '#ef4444','#f97316','#eab308','#22c55e',
+      '#14b8a6','#3b82f6','#8b5cf6','#ec4899',
+      '#06b6d4','#84cc16','#f43f5e','#a855f7'
+    ];
+
+    let selectedColor = COLORS[0];
+
+    // Build color grid
+    const grid = document.getElementById('color-grid');
+    COLORS.forEach(color => {
+      const btn = document.createElement('button');
+      btn.className = 'color-dot';
+      btn.style.background = color;
+      btn.dataset.color = color;
+      btn.onclick = () => selectColor(color);
+      grid.appendChild(btn);
+    });
+    selectColor(COLORS[0]);
+
+    function selectColor(color) {
+      selectedColor = color;
+      document.querySelectorAll('.color-dot').forEach(b => {
+        b.classList.toggle('selected', b.dataset.color === color);
+      });
+      document.getElementById('avatar-preview').style.background = color;
+    }
+
+    function updatePreview() {
+      const name = document.getElementById('profile-name').value.trim();
+      document.getElementById('avatar-preview').textContent =
+        name ? name.charAt(0).toUpperCase() : '?';
+    }
+
+    function saveProfile() {
+      const name = document.getElementById('profile-name').value.trim();
+      if (!name) {
+        const err = document.getElementById('profile-error');
+        err.textContent = 'กรุณาใส่ชื่อที่แสดง';
+        err.classList.remove('hidden');
+        setTimeout(() => err.classList.add('hidden'), 3000);
+        return;
+      }
+      localStorage.setItem('wt-profile', JSON.stringify({
+        username: name,
+        color:    selectedColor,
+        initial:  name.charAt(0).toUpperCase()
+      }));
+      // Redirect to previous destination or home
+      const next = new URLSearchParams(window.location.search).get('next') || '/';
+      window.location.href = next;
+    }
+
+    // Pre-fill if editing existing profile
+    const existing = JSON.parse(localStorage.getItem('wt-profile') || 'null');
+    if (existing) {
+      document.getElementById('profile-name').value = existing.username;
+      selectColor(existing.color || COLORS[0]);
+      updatePreview();
+    }
+
+    document.getElementById('profile-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveProfile();
+    });
+  </script>
+</body>
+</html>

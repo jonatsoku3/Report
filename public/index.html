@@ -7,6 +7,15 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Profile bar (top-right) -->
+  <div class="profile-bar" id="profile-bar" style="display:none">
+    <div class="profile-chip" id="profile-chip">
+      <div class="chip-avatar" id="chip-avatar">A</div>
+      <span class="chip-name" id="chip-name">ชื่อ</span>
+    </div>
+    <button class="chip-edit-btn" onclick="editProfile()" title="แก้ไขโปรไฟล์">✏️</button>
+  </div>
+
   <div class="landing">
     <div class="hero">
       <div class="logo">
@@ -17,18 +26,9 @@
       <p class="subtitle">สร้างห้องดูวิดีโอ แชร์รหัส แล้วเชิญเพื่อนมาดูพร้อมกันแบบ real-time</p>
 
       <div class="features">
-        <div class="feature">
-          <span class="feat-icon">🔄</span>
-          <span>Sync อัตโนมัติ</span>
-        </div>
-        <div class="feature">
-          <span class="feat-icon">💬</span>
-          <span>แชทในห้อง</span>
-        </div>
-        <div class="feature">
-          <span class="feat-icon">👥</span>
-          <span>ไม่จำกัดผู้ชม</span>
-        </div>
+        <div class="feature"><span class="feat-icon">🔄</span><span>Sync อัตโนมัติ</span></div>
+        <div class="feature"><span class="feat-icon">💬</span><span>แชทในห้อง</span></div>
+        <div class="feature"><span class="feat-icon">👥</span><span>ไม่จำกัดผู้ชม</span></div>
       </div>
     </div>
 
@@ -41,10 +41,7 @@
         </div>
         <div class="card-body">
           <p>เปิดห้องดูวิดีโอและรับรหัสห้องเพื่อแชร์ให้เพื่อน</p>
-          <div class="form-group">
-            <label>ชื่อของคุณ</label>
-            <input type="text" id="create-username" placeholder="ใส่ชื่อของคุณ" maxlength="20" />
-          </div>
+          <div class="profile-summary" id="create-profile-summary"></div>
           <button class="btn btn-primary" onclick="createRoom()">สร้างห้อง</button>
         </div>
       </div>
@@ -58,12 +55,9 @@
         <div class="card-body">
           <p>ใส่รหัสห้องที่ได้รับจากเพื่อนเพื่อเข้าร่วมดูวิดีโอพร้อมกัน</p>
           <div class="form-group">
-            <label>ชื่อของคุณ</label>
-            <input type="text" id="join-username" placeholder="ใส่ชื่อของคุณ" maxlength="20" />
-          </div>
-          <div class="form-group">
             <label>รหัสห้อง</label>
-            <input type="text" id="join-code" placeholder="เช่น ABC123" maxlength="6" style="text-transform:uppercase" />
+            <input type="text" id="join-code" placeholder="เช่น ABC123" maxlength="6"
+              style="text-transform:uppercase" onkeydown="if(event.key==='Enter')joinRoom()" />
           </div>
           <button class="btn btn-secondary" onclick="joinRoom()">เข้าร่วมห้อง</button>
         </div>
@@ -74,24 +68,55 @@
   </div>
 
   <script>
+    // ── Profile Gate ─────────────────────────────────────────────────────
+    const profile = JSON.parse(localStorage.getItem('wt-profile') || 'null');
+    if (!profile) {
+      window.location.href = '/profile.html';
+    } else {
+      showProfileBar(profile);
+    }
+
+    function showProfileBar(p) {
+      const bar    = document.getElementById('profile-bar');
+      const avatar = document.getElementById('chip-avatar');
+      const name   = document.getElementById('chip-name');
+      avatar.textContent  = p.initial || p.username.charAt(0).toUpperCase();
+      avatar.style.background = p.color || '#ef4444';
+      name.textContent    = p.username;
+      bar.style.display   = 'flex';
+
+      // Show profile summary in create card
+      document.getElementById('create-profile-summary').innerHTML = `
+        <div class="inline-profile">
+          <div class="inline-avatar" style="background:${p.color}">${p.initial}</div>
+          <span>${escapeHtml(p.username)}</span>
+        </div>
+      `;
+    }
+
+    function editProfile() {
+      window.location.href = '/profile.html?next=' + encodeURIComponent('/');
+    }
+
+    // ── Room Actions ──────────────────────────────────────────────────────
     function generateCode() {
       return Math.random().toString(36).substring(2, 8).toUpperCase();
     }
 
     function createRoom() {
-      const username = document.getElementById('create-username').value.trim();
-      if (!username) { showError('กรุณาใส่ชื่อของคุณ'); return; }
+      const p = JSON.parse(localStorage.getItem('wt-profile') || 'null');
+      if (!p) { window.location.href = '/profile.html'; return; }
       const roomId = generateCode();
-      const params = new URLSearchParams({ room: roomId, username, host: '1' });
+      const params = new URLSearchParams({ room: roomId, host: '1' });
       window.location.href = `/room.html?${params}`;
     }
 
     function joinRoom() {
-      const username = document.getElementById('join-username').value.trim();
+      const p      = JSON.parse(localStorage.getItem('wt-profile') || 'null');
+      if (!p) { window.location.href = '/profile.html'; return; }
       const roomId = document.getElementById('join-code').value.trim().toUpperCase();
-      if (!username) { showError('กรุณาใส่ชื่อของคุณ'); return; }
       if (!roomId || roomId.length < 4) { showError('กรุณาใส่รหัสห้องให้ถูกต้อง'); return; }
-      const params = new URLSearchParams({ room: roomId, username });
+      const params = new URLSearchParams({ room: roomId });
       window.location.href = `/room.html?${params}`;
     }
 
@@ -102,12 +127,10 @@
       setTimeout(() => el.classList.add('hidden'), 4000);
     }
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        if (document.activeElement.id.startsWith('create')) createRoom();
-        else if (document.activeElement.id.startsWith('join')) joinRoom();
-      }
-    });
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, m =>
+        ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
+    }
   </script>
 </body>
 </html>

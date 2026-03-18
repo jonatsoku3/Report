@@ -9,27 +9,26 @@ const io     = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// rooms[roomId] = { videoId, state, currentTime, hostId, users: Map<socketId, username> }
+// rooms[roomId] = { videoId, state, currentTime, hostId, users: Map<socketId, {name, color}> }
 const rooms = new Map();
 
 io.on('connection', (socket) => {
   // ── Create Room ────────────────────────────────────────────────────────
-  // Client supplies a pre-generated roomId (from index.html)
-  socket.on('create-room', ({ roomId, username }) => {
+  socket.on('create-room', ({ roomId, username, color }) => {
     if (rooms.has(roomId)) {
-      // Room already exists — just join it
-      return handleJoin(socket, roomId, username);
+      return handleJoin(socket, roomId, username, color);
     }
     rooms.set(roomId, {
       videoId:     '',
       state:       'paused',
       currentTime: 0,
       hostId:      socket.id,
-      users:       new Map([[socket.id, username]])
+      users:       new Map([[socket.id, { name: username, color }]])
     });
     socket.join(roomId);
     socket.data.roomId   = roomId;
     socket.data.username = username;
+    socket.data.color    = color;
 
     socket.emit('room-created', { roomId });
     io.to(roomId).emit('room-update', getRoomData(roomId));
@@ -37,8 +36,8 @@ io.on('connection', (socket) => {
   });
 
   // ── Join Room ──────────────────────────────────────────────────────────
-  socket.on('join-room', ({ roomId, username }) => {
-    handleJoin(socket, roomId, username);
+  socket.on('join-room', ({ roomId, username, color }) => {
+    handleJoin(socket, roomId, username, color);
   });
 
   // ── Set Video (host only) ──────────────────────────────────────────────
@@ -82,6 +81,7 @@ io.on('connection', (socket) => {
     io.to(socket.data.roomId).emit('chat-message', {
       system:    false,
       username:  socket.data.username,
+      color:     socket.data.color,
       message,
       timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
     });
@@ -89,8 +89,8 @@ io.on('connection', (socket) => {
 
   // ── Disconnect ─────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
-    const roomId  = socket.data.roomId;
-    const room    = rooms.get(roomId);
+    const roomId = socket.data.roomId;
+    const room   = rooms.get(roomId);
     if (!room) return;
 
     const username = socket.data.username;
@@ -102,33 +102,30 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Transfer host
     if (room.hostId === socket.id) {
       room.hostId = room.users.keys().next().value;
       io.to(roomId).emit('host-changed', { newHostId: room.hostId });
     }
 
     io.to(roomId).emit('room-update', getRoomData(roomId));
-    io.to(roomId).emit('chat-message', {
-      system:  true,
-      message: `${username} ออกจากห้อง`
-    });
+    io.to(roomId).emit('chat-message', { system: true, message: `${username} ออกจากห้อง` });
     console.log(`${username} left room ${roomId}`);
   });
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function handleJoin(socket, roomId, username) {
+function handleJoin(socket, roomId, username, color) {
   const room = rooms.get(roomId);
   if (!room) {
     socket.emit('error', { message: 'ไม่พบห้องนี้ กรุณาตรวจสอบรหัสห้องอีกครั้ง' });
     return;
   }
-  room.users.set(socket.id, username);
+  room.users.set(socket.id, { name: username, color });
   socket.join(roomId);
   socket.data.roomId   = roomId;
   socket.data.username = username;
+  socket.data.color    = color;
 
   socket.emit('room-joined', {
     roomId,
@@ -139,10 +136,7 @@ function handleJoin(socket, roomId, username) {
   });
 
   io.to(roomId).emit('room-update', getRoomData(roomId));
-  io.to(roomId).emit('chat-message', {
-    system:  true,
-    message: `${username} เข้าร่วมห้อง`
-  });
+  io.to(roomId).emit('chat-message', { system: true, message: `${username} เข้าร่วมห้อง` });
   console.log(`${username} joined room ${roomId}`);
 }
 
@@ -157,9 +151,10 @@ function getRoomData(roomId) {
     roomId,
     hostId: room.hostId,
     videoId: room.videoId,
-    users: Array.from(room.users.entries()).map(([id, name]) => ({
+    users: Array.from(room.users.entries()).map(([id, u]) => ({
       id,
-      name,
+      name:   u.name,
+      color:  u.color,
       isHost: id === room.hostId
     }))
   };

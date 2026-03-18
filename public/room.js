@@ -1,13 +1,15 @@
-// ── URL Params ───────────────────────────────────────────────────────────
-const params = new URLSearchParams(window.location.search);
-const roomId   = params.get('room');
-const username = params.get('username') || 'ผู้ชม';
-const isHostParam = params.get('host') === '1';
+// ── Profile Gate ─────────────────────────────────────────────────────────
+const profile = JSON.parse(localStorage.getItem('wt-profile') || 'null');
+if (!profile) { window.location.href = '/profile.html'; }
 
-if (!roomId || !username || username === 'ผู้ชม' && !isHostParam) {
-  // Missing params — go back
-  if (!roomId) { window.location.href = '/'; }
-}
+// ── URL Params ───────────────────────────────────────────────────────────
+const params      = new URLSearchParams(window.location.search);
+const roomId      = params.get('room');
+const isHostParam = params.get('host') === '1';
+const username    = profile ? profile.username : 'ผู้ชม';
+const myColor     = profile ? profile.color : '#ef4444';
+
+if (!roomId) { window.location.href = '/'; }
 
 // ── State ────────────────────────────────────────────────────────────────
 let player       = null;
@@ -23,9 +25,9 @@ const socket = io();
 socket.on('connect', () => {
   mySocketId = socket.id;
   if (isHostParam) {
-    socket.emit('create-room', { roomId, username });
+    socket.emit('create-room', { roomId, username, color: myColor });
   } else {
-    socket.emit('join-room', { roomId, username });
+    socket.emit('join-room', { roomId, username, color: myColor });
   }
 });
 
@@ -233,7 +235,7 @@ function renderUsers(users) {
   const list = document.getElementById('user-list');
   list.innerHTML = users.map(u => `
     <div class="user-item ${u.isHost ? 'host' : ''}">
-      <span class="user-avatar">${escapeHtml(u.name.charAt(0).toUpperCase())}</span>
+      <span class="user-avatar" style="background:${u.color || '#ef4444'}">${escapeHtml(u.name.charAt(0).toUpperCase())}</span>
       <span class="user-name">${escapeHtml(u.name)}</span>
       ${u.isHost ? '<span class="host-tag">👑</span>' : ''}
       ${u.id === mySocketId ? '<span class="you-tag">(คุณ)</span>' : ''}
@@ -241,17 +243,18 @@ function renderUsers(users) {
   `).join('');
 }
 
-function appendChat({ system, username: uname, message, timestamp }) {
+function appendChat({ system, username: uname, color, message, timestamp }) {
   const container = document.getElementById('chat-messages');
   const div       = document.createElement('div');
   if (system) {
     div.className   = 'chat-system';
     div.textContent = message;
   } else {
+    const userColor = color || '#ef4444';
     div.className   = 'chat-msg';
     div.innerHTML   = `
       <div class="msg-header">
-        <span class="msg-user">${escapeHtml(uname)}</span>
+        <span class="msg-user" style="color:${userColor}">${escapeHtml(uname)}</span>
         <span class="msg-time">${timestamp || ''}</span>
       </div>
       <div class="msg-body">${escapeHtml(message)}</div>
