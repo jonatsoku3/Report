@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WatchTogether - ห้องดูวิดีโอ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="room-page">
+
+  <!-- Header -->
+  <header class="room-header">
+    <div class="header-left">
+      <a href="/" class="logo-small">▶ WatchTogether</a>
+      <div class="room-info">
+        <span class="room-label">รหัสห้อง:</span>
+        <span class="room-code" id="room-code-display">------</span>
+        <button class="copy-btn" onclick="copyRoomCode()" title="คัดลอกรหัส">📋</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="user-count" id="user-count">👥 0 คน</span>
+    </div>
+  </header>
+
+  <div class="room-layout">
+    <!-- Main: Video + Controls -->
+    <div class="main-area">
+      <!-- Video URL input (host only) -->
+      <div class="video-input-bar" id="video-input-bar">
+        <div class="input-row">
+          <span class="input-label">🔗 ลิงก์ YouTube:</span>
+          <input type="text" id="video-url-input" placeholder="วาง URL วิดีโอ YouTube ที่นี่..." />
+          <button class="btn btn-primary btn-sm" onclick="setVideo()">โหลดวิดีโอ</button>
+        </div>
+        <div class="host-badge">👑 คุณเป็นโฮสต์ — ควบคุมวิดีโอได้</div>
+      </div>
+
+      <!-- Video player -->
+      <div class="player-wrapper">
+        <div class="player-placeholder" id="player-placeholder">
+          <div class="placeholder-content">
+            <span class="placeholder-icon">▶</span>
+            <p id="placeholder-text">รอโฮสต์เลือกวิดีโอ...</p>
+          </div>
+        </div>
+        <div id="player-container" class="hidden">
+          <div id="yt-player"></div>
+          <div class="player-overlay" id="player-overlay"></div>
+        </div>
+      </div>
+
+      <!-- Now playing -->
+      <div class="now-playing" id="now-playing" style="display:none">
+        <span class="np-label">กำลังดู:</span>
+        <span id="np-title">-</span>
+        <span class="sync-status" id="sync-status"></span>
+      </div>
+    </div>
+
+    <!-- Sidebar: Users + Chat -->
+    <aside class="sidebar">
+      <!-- Users -->
+      <div class="sidebar-section">
+        <div class="section-header">
+          <span>👥 ในห้องนี้</span>
+        </div>
+        <div class="user-list" id="user-list"></div>
+      </div>
+
+      <!-- Chat -->
+      <div class="sidebar-section chat-section">
+        <div class="section-header">
+          <span>💬 แชท</span>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-row">
+          <input
+            type="text"
+            id="chat-input"
+            placeholder="พิมพ์ข้อความ..."
+            maxlength="200"
+            onkeydown="if(event.key==='Enter') sendChat()"
+          />
+          <button class="btn btn-send" onclick="sendChat()">ส่ง</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="room.js"></script>
+</body>
+</html>

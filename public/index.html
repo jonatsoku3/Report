@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WatchTogether - ดูยูทูปพร้อมกัน</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="landing">
+    <div class="hero">
+      <div class="logo">
+        <span class="logo-icon">▶</span>
+        <span class="logo-text">WatchTogether</span>
+      </div>
+      <h1>ดูยูทูปพร้อมกัน<br /><span class="highlight">ทุกที่ ทุกเวลา</span></h1>
+      <p class="subtitle">สร้างห้องดูวิดีโอ แชร์รหัส แล้วเชิญเพื่อนมาดูพร้อมกันแบบ real-time</p>
+
+      <div class="features">
+        <div class="feature">
+          <span class="feat-icon">🔄</span>
+          <span>Sync อัตโนมัติ</span>
+        </div>
+        <div class="feature">
+          <span class="feat-icon">💬</span>
+          <span>แชทในห้อง</span>
+        </div>
+        <div class="feature">
+          <span class="feat-icon">👥</span>
+          <span>ไม่จำกัดผู้ชม</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards">
+      <!-- Create Room -->
+      <div class="card">
+        <div class="card-header create">
+          <span class="card-icon">🏠</span>
+          <h2>สร้างห้องใหม่</h2>
+        </div>
+        <div class="card-body">
+          <p>เปิดห้องดูวิดีโอและรับรหัสห้องเพื่อแชร์ให้เพื่อน</p>
+          <div class="form-group">
+            <label>ชื่อของคุณ</label>
+            <input type="text" id="create-username" placeholder="ใส่ชื่อของคุณ" maxlength="20" />
+          </div>
+          <button class="btn btn-primary" onclick="createRoom()">สร้างห้อง</button>
+        </div>
+      </div>
+
+      <!-- Join Room -->
+      <div class="card">
+        <div class="card-header join">
+          <span class="card-icon">🚪</span>
+          <h2>เข้าร่วมห้อง</h2>
+        </div>
+        <div class="card-body">
+          <p>ใส่รหัสห้องที่ได้รับจากเพื่อนเพื่อเข้าร่วมดูวิดีโอพร้อมกัน</p>
+          <div class="form-group">
+            <label>ชื่อของคุณ</label>
+            <input type="text" id="join-username" placeholder="ใส่ชื่อของคุณ" maxlength="20" />
+          </div>
+          <div class="form-group">
+            <label>รหัสห้อง</label>
+            <input type="text" id="join-code" placeholder="เช่น ABC123" maxlength="6" style="text-transform:uppercase" />
+          </div>
+          <button class="btn btn-secondary" onclick="joinRoom()">เข้าร่วมห้อง</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="error-msg" class="error-msg hidden"></div>
+  </div>
+
+  <script>
+    function generateCode() {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
+    function createRoom() {
+      const username = document.getElementById('create-username').value.trim();
+      if (!username) { showError('กรุณาใส่ชื่อของคุณ'); return; }
+      const roomId = generateCode();
+      const params = new URLSearchParams({ room: roomId, username, host: '1' });
+      window.location.href = `/room.html?${params}`;
+    }
+
+    function joinRoom() {
+      const username = document.getElementById('join-username').value.trim();
+      const roomId = document.getElementById('join-code').value.trim().toUpperCase();
+      if (!username) { showError('กรุณาใส่ชื่อของคุณ'); return; }
+      if (!roomId || roomId.length < 4) { showError('กรุณาใส่รหัสห้องให้ถูกต้อง'); return; }
+      const params = new URLSearchParams({ room: roomId, username });
+      window.location.href = `/room.html?${params}`;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        if (document.activeElement.id.startsWith('create')) createRoom();
+        else if (document.activeElement.id.startsWith('join')) joinRoom();
+      }
+    });
+  </script>
+</body>
+</html>
