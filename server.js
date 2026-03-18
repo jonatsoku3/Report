@@ -5,9 +5,17 @@ const path    = require('path');
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+const io     = new Server(server, {
+  cors: { origin: '*' },
+  // Required for WebSocket behind reverse proxies (Railway, Render, Fly.io)
+  transports: ['websocket', 'polling']
+});
 
+app.set('trust proxy', 1);
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Health check — required by most hosting platforms
+app.get('/health', (_req, res) => res.json({ status: 'ok', rooms: rooms.size }));
 
 // rooms[roomId] = { videoId, state, currentTime, hostId, users: Map<socketId, {name, color}> }
 const rooms = new Map();
@@ -161,6 +169,6 @@ function getRoomData(roomId) {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running → http://localhost:${PORT}`);
 });
